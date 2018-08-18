@@ -1,0 +1,17 @@
+freetrading.selling_price=+%d
+freetrading.buying_price=-%d
+freetrading.money=Player's money: %d
+freetrading.merchant_money=Wealth:
+freetrading.merchant_level=Level: %s
+farmer=Farmer
+fisherman=Fisherman
+shepherd=Shepherd
+fletcher=Fletcher
+librarian=Librarian
+cartographer=Cartographer
+cleric=Cleric
+armor=Armorer
+weapon=Weapon Smith
+tool=Tool Smith
+butcher=Butcher
+leather=Leatherworker
