@@ -61,7 +61,7 @@ public class GuiInventorySlot {
 				currentScreen.mc.renderEngine.bindTexture(bg);
 				currentScreen.zLevel += 200.0f;
 				GL11.glColor4f(1.0f, 1.0f, 1.0f, 0.75f);
-				currentScreen.drawTexturedModalRect(x1, y1, 16*tradeTier, 166, 16, 16);
+				currentScreen.drawTexturedModalRect(x1, y1, 16*(tradeTier-1), 166, 16, 16);
 				GL11.glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 				currentScreen.zLevel -= 200.0f;
 			}

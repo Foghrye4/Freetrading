@@ -1,6 +1,6 @@
 freetrading.selling_price=+%d
 freetrading.buying_price=-%d
-freetrading.money=Player's money: %d
+freetrading.money=Money: %d
 freetrading.merchant_money=Wealth:
 freetrading.merchant_level=Level: %s
 farmer=Farmer
@@ -15,3 +15,4 @@ weapon=Weapon Smith
 tool=Tool Smith
 butcher=Butcher
 leather=Leatherworker
+nitwit=Loafer

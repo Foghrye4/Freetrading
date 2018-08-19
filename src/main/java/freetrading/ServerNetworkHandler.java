@@ -109,6 +109,7 @@ public class ServerNetworkHandler {
 					return;
 				}
 				playerMoney = TradingSystem.addMoneyTo(player, -price);
+				price -= TradingSystem.getSellingPriceOf(stack);
 				player.addItemStackToInventory(stack);
 				if(price>0) {
 					long money = TradingSystem.addMoneyTo(villager, price);

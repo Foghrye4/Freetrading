@@ -67,12 +67,12 @@ public class TradingSystem implements IMerchant {
 		this.addPrice(new ItemStack(Items.FILLED_MAP), EMERALD_PRICE*24, EMERALD_PRICE);
 		
 		for(VillagerProfession proffession:ForgeRegistries.VILLAGER_PROFESSIONS.getValues()) {
-			for(int i=0;i<6;i++) {
+			next_career:for(int i=0;i<6;i++) {
 				VillagerCareer career = proffession.getCareer(i);
-				for(int i1=0;i1<3;i1++) {
+				for(int i1=0;i1<7;i1++) {
 					List<ITradeList> trades = career.getTrades(i1);
 					if(trades==null)
-						continue;
+						continue next_career;
 					for(ITradeList trade:trades) {
 						trade.addMerchantRecipe(this, recipeList, world.rand);
 					}
