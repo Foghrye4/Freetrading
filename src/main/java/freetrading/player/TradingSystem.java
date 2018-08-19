@@ -65,6 +65,8 @@ public class TradingSystem implements IMerchant {
 		this.addPrice(new ItemStack(Items.FISH), EMERALD_PRICE, EMERALD_PRICE/24);
 		this.addPrice(new ItemStack(Blocks.GRAVEL), 16, 1);
 		this.addPrice(new ItemStack(Items.FILLED_MAP), EMERALD_PRICE*24, EMERALD_PRICE);
+		this.addPrice(new ItemStack(Blocks.LOG), 32, 1);
+		this.addPrice(new ItemStack(Blocks.LOG2), 32, 1);
 		
 		for(VillagerProfession proffession:ForgeRegistries.VILLAGER_PROFESSIONS.getValues()) {
 			next_career:for(int i=0;i<6;i++) {
