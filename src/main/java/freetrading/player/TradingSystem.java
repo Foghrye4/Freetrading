@@ -10,6 +10,8 @@ import freetrading.FreeTradingMod;
 import freetrading.inventory.InventoryFreeTradingMerchant;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.gui.GuiMerchant;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.IMerchant;
@@ -43,7 +45,7 @@ public class TradingSystem implements IMerchant {
 	public final static String MONEY = "money";
 	private MerchantRecipeList recipeList = new MerchantRecipeList();
 	private Int2ObjectMap<TradingSystemPriceEntry> pricesByItemId = new Int2ObjectOpenHashMap<TradingSystemPriceEntry>();
-	private Int2ObjectMap<TradingSystemPriceEntry> pricesByItemIdAndMeta = new Int2ObjectOpenHashMap<TradingSystemPriceEntry>();
+	private Long2ObjectMap<TradingSystemPriceEntry> pricesByItemIdAndMeta = new Long2ObjectOpenHashMap<TradingSystemPriceEntry>();
 	private TradingSystemPriceEntry ZERO_PRICE;
 
 	@SubscribeEvent
@@ -191,8 +193,8 @@ public class TradingSystem implements IMerchant {
 		}
 	}
 	
-	private static int encodeIdMetaPair(int id, int meta) {
-		return meta << 16 | id;
+	private static long encodeIdMetaPair(int id, int meta) {
+		return meta << 32 | id;
 	}
 	
 	public static long getMoneyOf(Entity entity) {
@@ -217,7 +219,7 @@ public class TradingSystem implements IMerchant {
 		if(stack.isEmpty())
 			return instance.ZERO_PRICE;
 		int id = Item.REGISTRY.getIDForObject(stack.getItem());
-		int metaToIDPair = encodeIdMetaPair(id, stack.getMetadata());
+		long metaToIDPair = encodeIdMetaPair(id, stack.getMetadata());
 		if(instance.pricesByItemIdAndMeta.containsKey(metaToIDPair)) {
 			return instance.pricesByItemIdAndMeta.get(metaToIDPair);
 		}

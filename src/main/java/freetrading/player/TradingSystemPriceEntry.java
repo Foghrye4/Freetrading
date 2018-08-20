@@ -9,7 +9,7 @@ public class TradingSystemPriceEntry {
 	public int buyingPrice = 144;
 	
 	public TradingSystemPriceEntry(ItemStack itemStackIn) {
-		itemStack = itemStackIn;
+		itemStack = itemStackIn.copy();
 		itemStack.setCount(1);
 	}
 	
