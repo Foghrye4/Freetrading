@@ -1,9 +1,13 @@
 package freetrading.client.gui;
 
+import java.util.List;
+
 import org.lwjgl.opengl.GL11;
 
 import freetrading.FreeTradingMod;
 import freetrading.inventory.InventoryFreeTradingMerchant;
+import freetrading.trading_system.TradeOffer;
+import freetrading.trading_system.TradingSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
@@ -19,12 +23,13 @@ public class GuiInventorySlot {
 	public final int x;
 	public final int y;
 	public int tradeTier = 0;
-	public final IInventory inventory;
+	public int price = 0;
+	public final List<TradeOffer> inventory;
 	public final int slotIndex;
 	private final RenderItem renderItem;
 	private boolean isSelected;
 
-	public GuiInventorySlot(int x1, int y1, IInventory inventoryIn, int slotIndexIn) {
+	public GuiInventorySlot(int x1, int y1, List<TradeOffer> inventoryIn, int slotIndexIn) {
 		x = x1;
 		y = y1;
 		inventory = inventoryIn;
@@ -32,12 +37,21 @@ public class GuiInventorySlot {
 		renderItem = Minecraft.getMinecraft().getRenderItem();
 	}
 	
-	public void refresh() {
-		stack = inventory.getStackInSlot(slotIndex);
-		if(inventory instanceof InventoryFreeTradingMerchant) {
-			InventoryFreeTradingMerchant iftm = (InventoryFreeTradingMerchant) inventory;
-			tradeTier = iftm.itemTierLevel[slotIndex];
+	public void refresh(int careerLevel) {
+		if (inventory.size() <= slotIndex) {
+			stack = ItemStack.EMPTY;
+			tradeTier = 0;
+			price = 0;
+			return;
 		}
+		TradeOffer tradeOffer = inventory.get(slotIndex);
+		stack = tradeOffer.stack;
+		if (careerLevel < tradeOffer.level)
+			tradeTier = tradeOffer.level;
+		else {
+			tradeTier = 0;
+		}
+		price = tradeOffer.price;
 	}
 	
 	public void render(int guiLeft, int guiTop, int mousePosX, int mousePosY) {
@@ -83,7 +97,6 @@ public class GuiInventorySlot {
 	        currentScreen.drawHoveringText(currentScreen.getItemToolTip(stack), x1, y1);
 	        net.minecraftforge.fml.client.config.GuiUtils.postItemToolTip();
 		}
-		
 	}
 
 	public void setSelected(boolean b) {

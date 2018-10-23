@@ -5,7 +5,7 @@ import java.io.IOException;
 import freetrading.ClientNetworkHandler;
 import freetrading.FreeTradingMod;
 import freetrading.inventory.InventoryFreeTradingMerchant;
-import freetrading.player.TradingSystem;
+import freetrading.trading_system.TradingSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.renderer.RenderHelper;
@@ -53,17 +53,17 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 9; ++j) {
 				int index = j + i * 9;
-				merchantInventorySlots[index] = new GuiInventorySlot(xMargin + j * 18, yMerchantSlotsMargin1 + i * 18, merchantInventory, index);
+				merchantInventorySlots[index] = new GuiInventorySlot(xMargin + j * 18, yMerchantSlotsMargin1 + i * 18, merchantInventory.tradeOffers, index);
 			}
 		}
 		for (int i = 0; i < 3; ++i) {
 			for (int j = 0; j < 9; ++j) {
 				int index = j + i * 9 + 9;
-				playerInventorySlots[index] = new GuiInventorySlot(xMargin + j * 18, yPlayerSlotsMargin1 + i * 18, playerIn.inventory, index);
+				playerInventorySlots[index] = new GuiInventorySlot(xMargin + j * 18, yPlayerSlotsMargin1 + i * 18, merchantInventory.playerTradeOffers, index);
 			}
 		}
 		for (int k = 0; k < 9; ++k) {
-			playerInventorySlots[k] = new GuiInventorySlot(xMargin + k * 18, yPlayerSlotsMargin2, playerIn.inventory, k);
+			playerInventorySlots[k] = new GuiInventorySlot(xMargin + k * 18, yPlayerSlotsMargin2, merchantInventory.playerTradeOffers, k);
 		}
 	}
 	
@@ -103,10 +103,10 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 		int merchantLevel = merchantInventory.merchant.careerLevel;
 		merchantLevelString = I18n.format("freetrading.merchant_level", merchantLevel>=ROMAN_NUMERALS.length?merchantLevel:ROMAN_NUMERALS[merchantLevel]);
 		for(GuiInventorySlot slot:playerInventorySlots) {
-			slot.refresh();
+			slot.refresh(9);
 		}
 		for(GuiInventorySlot slot:merchantInventorySlots) {
-			slot.refresh();
+			slot.refresh(merchantInventory.merchant.careerLevel);
 		}
 	}
 	
@@ -144,7 +144,7 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 		GuiInventorySlot i = getSlotFromPos(mouseX,mouseY);
 		if(i==null)
 			return;
-		if(i.inventory==merchantInventory) {
+		if(i.inventory==merchantInventory.tradeOffers) {
 			this.onMerchantSlotClick(i.slotIndex);
 		}
 		else {
@@ -177,7 +177,7 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 		selectedSlotNum = index;
 		isSelectedSlotMerchantSlot = true;
 		merchantInventorySlots[index].setSelected(true);
-		int price = TradingSystem.getBuyingPriceOf(merchantInventorySlots[index].stack);
+		int price = merchantInventorySlots[index].price;
 		priceString = I18n.format("freetrading.buying_price", price);
 		priceColor = 0xFF0000;
 	}
@@ -206,7 +206,7 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 		selectedSlotNum = index;
 		isSelectedSlotMerchantSlot = false;
 		playerInventorySlots[index].setSelected(true);
-		int price = TradingSystem.getSellingPriceOf(playerInventorySlots[index].stack);
+		int price = playerInventorySlots[index].price;
 		priceString = I18n.format("freetrading.selling_price", price);
 		priceColor = 0x00FF00;
 	}

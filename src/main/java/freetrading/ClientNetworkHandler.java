@@ -9,7 +9,8 @@ import java.util.List;
 
 import freetrading.client.gui.GuiFreeTradingMerchant;
 import freetrading.client.network.TaskShowGui;
-import freetrading.player.TradingSystem;
+import freetrading.trading_system.TradeOffer;
+import freetrading.trading_system.TradingSystem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.minecraft.client.Minecraft;
@@ -33,28 +34,30 @@ public class ClientNetworkHandler  extends ServerNetworkHandler {
 		PacketBuffer byteBufInputStream = new PacketBuffer(data);
 		EntityPlayerSP player = Minecraft.getMinecraft().player;
 		try {
+		int stackAmount;
 		switch (ClientCommands.values()[byteBufInputStream.readByte()]) {
 		case UPDATE_TRADING:
 			player.getEntityData().setLong(TradingSystem.MONEY, byteBufInputStream.readLong());
 			EntityVillager villager = (EntityVillager)world.getEntityByID(byteBufInputStream.readInt());
 			villager.getEntityData().setLong(TradingSystem.MONEY, byteBufInputStream.readLong());
-			int stackAmount = byteBufInputStream.readInt();
-			List<ItemStack> containerContent = new ArrayList<ItemStack>();
-			for(int i=0;i<stackAmount;i++) {
-				containerContent.add(i, byteBufInputStream.readItemStack());
-			}
-			int itemTiersLength = byteBufInputStream.readInt();
-			int[] itemTiers = new int[itemTiersLength];
-			for(int i=0;i<itemTiersLength;i++) {
-				itemTiers[i] = byteBufInputStream.readInt();
+			int toLength = byteBufInputStream.readInt();
+			List<TradeOffer> toList = new ArrayList<TradeOffer>();
+			for(int i=0;i<toLength;i++) {
+				ItemStack stack = byteBufInputStream.readItemStack();
+				int level = byteBufInputStream.readInt();
+				int price = byteBufInputStream.readInt();
+				toList.add(new TradeOffer(stack, level, price));
 			}
 			villager.careerId = byteBufInputStream.readInt();
 			villager.careerLevel = byteBufInputStream.readInt();
 			stackAmount = byteBufInputStream.readInt();
+			List<TradeOffer> playerToList = new ArrayList<TradeOffer>();
 			for(int i=0;i<stackAmount;i++) {
-				player.inventory.setInventorySlotContents(i, byteBufInputStream.readItemStack());
+				ItemStack stack = byteBufInputStream.readItemStack();
+				int price = byteBufInputStream.readInt();
+				playerToList.add(new TradeOffer(stack, 0, price));
 			}
-			mc.addScheduledTask(new TaskShowGui(villager, containerContent, itemTiers));
+			mc.addScheduledTask(new TaskShowGui(villager, toList, playerToList));
 		}
 		} catch (IOException e) {
 			e.printStackTrace();

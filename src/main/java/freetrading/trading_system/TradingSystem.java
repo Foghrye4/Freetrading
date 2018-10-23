@@ -1,10 +1,24 @@
-package freetrading.player;
+package freetrading.trading_system;
 
 import static freetrading.FreeTradingMod.network;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.annotation.Nullable;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 import freetrading.FreeTradingMod;
 import freetrading.inventory.InventoryFreeTradingMerchant;
@@ -23,12 +37,23 @@ import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.JsonToNBT;
+import net.minecraft.nbt.NBTException;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.village.MerchantRecipe;
 import net.minecraft.village.MerchantRecipeList;
 import net.minecraft.world.World;
+import net.minecraft.world.storage.loot.LootEntry;
+import net.minecraft.world.storage.loot.LootTable;
+import net.minecraft.world.storage.loot.RandomValueRange;
+import net.minecraft.world.storage.loot.conditions.LootCondition;
+import net.minecraft.world.storage.loot.conditions.LootConditionManager;
+import net.minecraft.world.storage.loot.functions.LootFunction;
+import net.minecraft.world.storage.loot.functions.LootFunctionManager;
 import net.minecraftforge.client.event.GuiOpenEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent.EntityInteract;
 import net.minecraftforge.event.world.WorldEvent;
@@ -47,9 +72,13 @@ public class TradingSystem implements IMerchant {
 	private Int2ObjectMap<TradingSystemPriceEntry> pricesByItemId = new Int2ObjectOpenHashMap<TradingSystemPriceEntry>();
 	private Long2ObjectMap<TradingSystemPriceEntry> pricesByItemIdAndMeta = new Long2ObjectOpenHashMap<TradingSystemPriceEntry>();
 	private TradingSystemPriceEntry ZERO_PRICE;
+	private final static int MAX_CAREER_ID = 6;
+	public final Map<ResourceLocation,Map<String,Set<ISellable>>> goodsByMerchantAndCareer = new HashMap<ResourceLocation,Map<String,Set<ISellable>>>();
 
 	@SubscribeEvent
 	public void onWorldLoad(WorldEvent.Load event) {
+		if(event.getWorld().isRemote || event.getWorld().provider.getDimension() !=0)
+			return;
 		this.init(event.getWorld());
 	}
 	
@@ -71,7 +100,7 @@ public class TradingSystem implements IMerchant {
 		this.addPrice(new ItemStack(Blocks.LOG2), 32, 1);
 		
 		for(VillagerProfession proffession:ForgeRegistries.VILLAGER_PROFESSIONS.getValues()) {
-			next_career:for(int i=0;i<6;i++) {
+			next_career:for(int i=0;i<MAX_CAREER_ID;i++) {
 				VillagerCareer career = proffession.getCareer(i);
 				for(int i1=0;i1<7;i1++) {
 					List<ITradeList> trades = career.getTrades(i1);
@@ -79,12 +108,44 @@ public class TradingSystem implements IMerchant {
 						continue next_career;
 					for(ITradeList trade:trades) {
 						trade.addMerchantRecipe(this, recipeList, world.rand);
+						this.registerTrade(proffession.getRegistryName(), career.getName(), new TradeWrapper(trade, i1));
 					}
 				}
 			}
 		}
 		this.getPrices(null);
+        File folder = new File(".", "config");
+        folder.mkdirs();
+        File configFile = new File(folder, "freetrading_custom_trades.json");
+        try {
+            if (configFile.exists())
+            	this.readConfigFromJson(configFile);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NBTException e) {
+			e.printStackTrace();
+		}
 		world = null;
+	}
+	
+	private void registerTrade(ResourceLocation profession, String career, ISellable sellable) {
+		Map<String, Set<ISellable>> customGoodsByCareer;
+		if (goodsByMerchantAndCareer.containsKey(profession)) {
+			customGoodsByCareer = goodsByMerchantAndCareer.get(profession);
+		}
+		else {
+			customGoodsByCareer = new HashMap<String, Set<ISellable>>();
+			goodsByMerchantAndCareer.put(profession, customGoodsByCareer);
+		}
+		Set<ISellable> sellables;
+		if(customGoodsByCareer.containsKey(career)) {
+			sellables = customGoodsByCareer.get(career);
+		}
+		else {
+			sellables = new HashSet<ISellable>();
+			customGoodsByCareer.put(career,sellables);
+		}
+		sellables.add(sellable);
 	}
 	
 	private void getPrices(@Nullable ItemStack toFind) {
@@ -93,6 +154,65 @@ public class TradingSystem implements IMerchant {
 				break;
 			}
 		}
+	}
+	
+	private void readConfigFromJson(File configFile) throws IOException, NBTException {
+		JsonReader reader = new JsonReader(new FileReader(configFile));
+		reader.beginArray();
+		while (reader.hasNext()) {
+			reader.beginObject(); {
+				int priceToSell = 144;
+				int priceToBuy = 1;
+				int level = 1;
+				Item item = null;
+				int data = 0;
+				ResourceLocation profession = null;
+				NBTTagCompound nbt = null;
+				String career = null;
+				while (reader.hasNext()) {
+					String name = reader.nextName();
+					if(name.equals("price_to_sell")) {
+						priceToSell = reader.nextInt();
+					}
+					else if(name.equals("price_to_buy")) {
+						priceToBuy = reader.nextInt();
+					}
+					else if(name.equals("item")) {
+						item = Item.getByNameOrId(reader.nextString());
+					}
+					else if(name.equals("level")) {
+						level = reader.nextInt();
+					}
+					else if(name.equals("data")) {
+						data = reader.nextInt();
+					}
+					else if(name.equals("nbt")) {
+						nbt = JsonToNBT.getTagFromJson(reader.nextString());
+					}
+					else if(name.equals("village_profession")) {
+						profession = new ResourceLocation(reader.nextString());
+					}
+					else if(name.equals("career")) {
+						career = reader.nextString();
+					}
+					else {
+						reader.skipValue();
+					}
+				}
+				ItemStack stack = new ItemStack(item,1,data);
+				stack.setTagCompound(nbt);
+				this.addPrice(stack, priceToBuy, priceToSell);
+				if (profession == null)
+					continue;
+				if (career == null) {
+					career = ForgeRegistries.VILLAGER_PROFESSIONS.getValue(profession).getCareer(0).getName();
+				}
+				CustomTrade ctrade = new CustomTrade(stack, level, priceToBuy);
+				registerTrade(profession,career, ctrade);
+			}
+			reader.endObject();
+		}
+		reader.close();
 	}
 	
 	private boolean getPrices(MerchantRecipe recipe, @Nullable ItemStack toFind) {
@@ -111,15 +231,15 @@ public class TradingSystem implements IMerchant {
 		if (b1known && b2known && sknown) {
 			return false;
 		} else if (b1known && b2known && !sknown) {
-			int priceToBuy = getSellingPriceOf(buy1) + getSellingPriceOf(buy2);
+			int priceToBuy = getLowPriceOf(buy1) + getLowPriceOf(buy2);
 			this.addPrice(sell, priceToBuy, priceToBuy / 24);
 			return toFind!=null;
 		} else if (b1known && !b2known && sknown) {
-			int priceToSell = getBuyingPriceOf(sell) - getSellingPriceOf(buy1);
+			int priceToSell = getHighPriceOf(sell) - getLowPriceOf(buy1);
 			this.addPrice(buy2, priceToSell * 24, priceToSell);
 			return toFind!=null;
 		} else if (!b1known && b2known && sknown) {
-			int priceToSell = getBuyingPriceOf(sell) - getSellingPriceOf(buy2);
+			int priceToSell = getHighPriceOf(sell) - getLowPriceOf(buy2);
 			this.addPrice(buy1, priceToSell * 24, priceToSell);
 			return toFind!=null;
 		} else {
@@ -178,13 +298,11 @@ public class TradingSystem implements IMerchant {
 		if (pricesByItemId.containsKey(id)) {
 			TradingSystemPriceEntry entry = pricesByItemId.get(id);
 			ItemStack existing = entry.itemStack;
-			if (existing.getMetadata() != stack.getMetadata()) {
-				pricesByItemIdAndMeta.putIfAbsent(encodeIdMetaPair(id, existing.getMetadata()), entry);
-				TradingSystemPriceEntry newEntry = new TradingSystemPriceEntry(stack);
-				newEntry.sellingPrice = priceToSell;
-				newEntry.buyingPrice = priceToBuy;
-				pricesByItemIdAndMeta.put(encodeIdMetaPair(id, stack.getMetadata()), newEntry);
-			}
+			pricesByItemIdAndMeta.putIfAbsent(encodeIdMetaPair(id, existing.getMetadata()), entry);
+			TradingSystemPriceEntry newEntry = new TradingSystemPriceEntry(stack);
+			newEntry.sellingPrice = priceToSell;
+			newEntry.buyingPrice = priceToBuy;
+			pricesByItemIdAndMeta.put(encodeIdMetaPair(id, stack.getMetadata()), newEntry);
 		} else {
 			TradingSystemPriceEntry newEntry = new TradingSystemPriceEntry(stack);
 			newEntry.sellingPrice = priceToSell;
@@ -207,11 +325,11 @@ public class TradingSystem implements IMerchant {
 		return current;
 	}
 	
-	public static int getSellingPriceOf(ItemStack stack) {
+	public static int getLowPriceOf(ItemStack stack) {
 		return getPriceEntry(stack).sellingPrice*stack.getCount();
 	}
 	
-	public static int getBuyingPriceOf(ItemStack stack) {
+	public static int getHighPriceOf(ItemStack stack) {
 		return getPriceEntry(stack).buyingPrice*stack.getCount();
 	}
 	

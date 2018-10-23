@@ -3,7 +3,8 @@ package freetrading;
 import java.io.IOException;
 
 import freetrading.inventory.InventoryFreeTradingMerchant;
-import freetrading.player.TradingSystem;
+import freetrading.trading_system.TradeOffer;
+import freetrading.trading_system.TradingSystem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
@@ -90,27 +91,27 @@ public class ServerNetworkHandler {
 				villagerId = byteBufInputStream.readInt();
 				EntityVillager villager = (EntityVillager) world.getEntityByID(villagerId);
 				ItemStack stack = player.inventory.removeStackFromSlot(slotId);
-				int price = TradingSystem.getSellingPriceOf(stack);
+				int price = TradingSystem.getLowPriceOf(stack);
 				playerMoney = TradingSystem.addMoneyTo(player, price);
 				break;
 			case BUY_ITEM:
 				slotId = byteBufInputStream.readInt();
 				villagerId = byteBufInputStream.readInt();
 				villager = (EntityVillager) world.getEntityByID(villagerId);
-				stack = merchantInventory.inventoryItemStacks.get(slotId);
-				int tier = merchantInventory.itemTierLevel[slotId];
+				TradeOffer to = merchantInventory.tradeOffers.get(slotId);
+				int tier = to.level;
 				if(tier>merchantInventory.merchant.careerLevel) {
 					byteBufInputStream.close();
 					return;
 				}
-				price = TradingSystem.getBuyingPriceOf(stack);
+				price = to.price;
 				if(price>playerMoney) {
 					byteBufInputStream.close();
 					return;
 				}
 				playerMoney = TradingSystem.addMoneyTo(player, -price);
-				price -= TradingSystem.getSellingPriceOf(stack);
-				player.addItemStackToInventory(stack);
+				price -= TradingSystem.getLowPriceOf(to.stack);
+				player.addItemStackToInventory(to.stack.copy());
 				if(price>0) {
 					long money = TradingSystem.addMoneyTo(villager, price);
 					villager.careerLevel = (int) (money/1000) + 1;
@@ -133,19 +134,20 @@ public class ServerNetworkHandler {
 		InventoryFreeTradingMerchant merchantInventory = (InventoryFreeTradingMerchant) player.openContainer;
 		byteBufOutputStream.writeInt(merchantInventory.merchant.getEntityId());
 		byteBufOutputStream.writeLong(TradingSystem.getMoneyOf(merchantInventory.merchant));
-		byteBufOutputStream.writeInt(merchantInventory.getSizeInventory());
-		for(int i=0;i<merchantInventory.getSizeInventory();i++) {
-			byteBufOutputStream.writeItemStack(merchantInventory.getStackInSlot(i));
-		}
-		byteBufOutputStream.writeInt(merchantInventory.itemTierLevel.length);
-		for(int i=0;i<merchantInventory.itemTierLevel.length;i++) {
-			byteBufOutputStream.writeInt(merchantInventory.itemTierLevel[i]);
+		byteBufOutputStream.writeInt(merchantInventory.tradeOffers.size());
+		for(int i=0;i<merchantInventory.tradeOffers.size();i++) {
+			TradeOffer to = merchantInventory.tradeOffers.get(i);
+			byteBufOutputStream.writeItemStack(to.stack);
+			byteBufOutputStream.writeInt(to.level);
+			byteBufOutputStream.writeInt(to.price);
 		}
 		byteBufOutputStream.writeInt(merchantInventory.merchant.careerId);
 		byteBufOutputStream.writeInt(merchantInventory.merchant.careerLevel);
 		byteBufOutputStream.writeInt(player.inventory.getSizeInventory());
 		for(int i=0;i<player.inventory.getSizeInventory();i++) {
-			byteBufOutputStream.writeItemStack(player.inventory.getStackInSlot(i));
+			ItemStack stack = player.inventory.getStackInSlot(i);
+			byteBufOutputStream.writeItemStack(stack);
+			byteBufOutputStream.writeInt(TradingSystem.getLowPriceOf(stack));
 		}
 		channel.sendTo(new FMLProxyPacket(byteBufOutputStream, MODID), player);
 	}

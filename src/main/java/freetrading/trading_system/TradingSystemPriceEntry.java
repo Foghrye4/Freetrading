@@ -1,4 +1,4 @@
-package freetrading.player;
+package freetrading.trading_system;
 
 import net.minecraft.item.ItemStack;
 

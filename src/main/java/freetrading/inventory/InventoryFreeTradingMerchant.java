@@ -1,13 +1,20 @@
 package freetrading.inventory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import freetrading.trading_system.ISellable;
+import freetrading.trading_system.TradeOffer;
+import freetrading.trading_system.TradingSystem;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.passive.EntityVillager.ITradeList;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ItemStackHelper;
+import net.minecraft.inventory.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.text.ITextComponent;
@@ -19,7 +26,8 @@ public class InventoryFreeTradingMerchant extends Container implements IInventor
 
 	public final EntityVillager merchant;
 	private final MerchantRecipeList recipeList = new MerchantRecipeList();
-	public final int[] itemTierLevel = new int[9*3];
+	public final List<TradeOffer> tradeOffers = new ArrayList<TradeOffer>();
+	public final List<TradeOffer> playerTradeOffers = new ArrayList<TradeOffer>();
 
 	public InventoryFreeTradingMerchant(EntityVillager theMerchantIn) {
 		merchant = theMerchantIn;
@@ -38,31 +46,25 @@ public class InventoryFreeTradingMerchant extends Container implements IInventor
 	}
 	
 	@Override
+	public Slot getSlot(int slotId) {
+		return null;
+	}
+
+	@Override
 	public void onCraftMatrixChanged(IInventory inventoryIn) {
-		recipeList.clear();
-		this.fillItemTier(0, 0);
+		tradeOffers.clear();
 		VillagerCareer career = merchant.getProfessionForge().getCareer(merchant.careerId);
-		for(int level=0;level<6; level++) {
-			List<ITradeList> trades = career.getTrades(level);
-			if(trades==null)
-				continue;
-			if(level>merchant.careerLevel)
-				this.fillItemTier(recipeList.size(), level);
-			for(ITradeList trade:trades) {
-				trade.addMerchantRecipe(merchant, recipeList, merchant.getRNG());
-			}
-		}
-		for(int i=0;i<recipeList.size();i++) {
-			this.inventoryItemStacks.add(i, recipeList.get(i).getItemToSell());
+		Map<String, Set<ISellable>> gbp = TradingSystem.instance.goodsByMerchantAndCareer.get(merchant.getProfessionForge().getRegistryName());
+		if(gbp==null)
+			return;
+		Set<ISellable> sellables = gbp.get(career.getName());
+		if(sellables==null)
+			return;
+		for(ISellable sellable:sellables) {
+			tradeOffers.add(sellable.getTradeOffer(merchant));
 		}
 	}
 	
-	private void fillItemTier(int from, int tier) {
-		for(int i=from;i<itemTierLevel.length;i++) {
-			itemTierLevel[i]=tier;
-		}
-	}
-
 	@Override
 	public ITextComponent getDisplayName() {
 		return new TextComponentString(getName());
