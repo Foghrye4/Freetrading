@@ -89,4 +89,17 @@ public class ClientNetworkHandler  extends ServerNetworkHandler {
 		byteBufOutputStream.writeInt(merchant.getEntityId());
 		channel.sendToServer(new FMLProxyPacket(byteBufOutputStream, MODID));
 	}
+	
+	public void openGui(EntityVillager merchant) {
+		WorldClient world = Minecraft.getMinecraft().world;		
+		EntityPlayerSP player = Minecraft.getMinecraft().player;
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ServerCommands.OPEN_GUI.ordinal());
+		byteBufOutputStream.writeInt(player.getEntityId());
+		byteBufOutputStream.writeInt(world.provider.getDimension());
+		byteBufOutputStream.writeInt(merchant.getEntityId());
+		channel.sendToServer(new FMLProxyPacket(byteBufOutputStream, MODID));
+	}
+
 }

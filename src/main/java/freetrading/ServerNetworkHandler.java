@@ -2,6 +2,9 @@ package freetrading;
 
 import java.io.IOException;
 
+import freetrading.common.network.TaskBuyItem;
+import freetrading.common.network.TaskOpenContainer;
+import freetrading.common.network.TaskSellItem;
 import freetrading.inventory.InventoryFreeTradingMerchant;
 import freetrading.trading_system.TradeOffer;
 import freetrading.trading_system.TradingSystem;
@@ -46,7 +49,7 @@ public class ServerNetworkHandler {
 	}
 
 	public enum ServerCommands {
-		SELL_ITEM, BUY_ITEM;
+		SELL_ITEM, BUY_ITEM, OPEN_GUI;
 	}
 
 	protected static FMLEventChannel channel;
@@ -77,49 +80,23 @@ public class ServerNetworkHandler {
 				byteBufInputStream.close();
 				throw new NullPointerException("There is no world for dimension "+worldDimensionId);
 			}
-			EntityPlayerMP player = (EntityPlayerMP) world.getEntityByID(playerEntityId);
-			long playerMoney = TradingSystem.getMoneyOf(player);
-			if(!(player.openContainer instanceof InventoryFreeTradingMerchant)) {
-				byteBufInputStream.close();
-				return;
-			}
-			InventoryFreeTradingMerchant merchantInventory = (InventoryFreeTradingMerchant) player.openContainer;
 			int villagerId = 0;
 			switch (command) {
+			case OPEN_GUI:
+				villagerId = byteBufInputStream.readInt();
+				world.addScheduledTask(new TaskOpenContainer(world, playerEntityId,villagerId));
+				break;
 			case SELL_ITEM:
 				slotId = byteBufInputStream.readInt();
 				villagerId = byteBufInputStream.readInt();
-				EntityVillager villager = (EntityVillager) world.getEntityByID(villagerId);
-				ItemStack stack = player.inventory.removeStackFromSlot(slotId);
-				int price = TradingSystem.getLowPriceOf(stack);
-				playerMoney = TradingSystem.addMoneyTo(player, price);
+				world.addScheduledTask(new TaskSellItem(world, playerEntityId,villagerId, slotId));
 				break;
 			case BUY_ITEM:
 				slotId = byteBufInputStream.readInt();
 				villagerId = byteBufInputStream.readInt();
-				villager = (EntityVillager) world.getEntityByID(villagerId);
-				TradeOffer to = merchantInventory.tradeOffers.get(slotId);
-				int tier = to.level;
-				if(tier>merchantInventory.merchant.careerLevel) {
-					byteBufInputStream.close();
-					return;
-				}
-				price = to.price;
-				if(price>playerMoney) {
-					byteBufInputStream.close();
-					return;
-				}
-				playerMoney = TradingSystem.addMoneyTo(player, -price);
-				price -= TradingSystem.getLowPriceOf(to.stack);
-				player.addItemStackToInventory(to.stack.copy());
-				if(price>0) {
-					long money = TradingSystem.addMoneyTo(villager, price);
-					villager.careerLevel = (int) (money/1000) + 1;
-				}
-				merchantInventory.onCraftMatrixChanged(merchantInventory);
+				world.addScheduledTask(new TaskBuyItem(world, playerEntityId,villagerId, slotId));
 				break;
 			}
-			sendPacketUpdateTrading(player);
 			byteBufInputStream.close();
 		} catch (IOException e) {
 			e.printStackTrace();

@@ -28,6 +28,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.minecraft.client.gui.GuiMerchant;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityList;
 import net.minecraft.entity.IMerchant;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.passive.EntityVillager.ITradeList;
@@ -270,18 +271,6 @@ public class TradingSystem implements IMerchant {
 		return false;
 	}
 
-	
-	@SubscribeEvent
-	public void onEntityInteract(EntityInteract event) {
-		if(event.getTarget() instanceof EntityVillager) {
-			event.setCanceled(true);
-			if(event.getEntity().world.isRemote)
-				return;
-			event.getEntityPlayer().openContainer = new InventoryFreeTradingMerchant((EntityVillager) event.getTarget());
-			network.sendPacketUpdateTrading((EntityPlayerMP) event.getEntityPlayer());
-		}
-	}
-	
 	private boolean isKnown(ItemStack stack) {
 		if(stack.isEmpty())
 			return true;
