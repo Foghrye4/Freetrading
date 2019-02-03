@@ -22,6 +22,9 @@ public class GuiEventHandler {
 		if (villager!=null) {
 			event.setCanceled(true);
 			ClientNetworkHandler cn = (ClientNetworkHandler) FreeTradingMod.network;
-			cn.openGui(villager);
+			cn.openMerchantGui(villager);
 		}
-	}}
+	}
+}
+
+

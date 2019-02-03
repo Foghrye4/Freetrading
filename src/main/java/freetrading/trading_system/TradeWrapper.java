@@ -23,9 +23,10 @@ public class TradeWrapper implements ISellable {
 	public TradeOffer getTradeOffer(IMerchant merchant) {
 		recipeList.clear();
 		trade.addMerchantRecipe(merchant, recipeList, random);
-		ItemStack stack = recipeList.get(0).getItemToSell();
-		if(!recipeList.isEmpty())
+		if(!recipeList.isEmpty()) {
+			ItemStack stack = recipeList.get(0).getItemToSell();
 			return new TradeOffer(stack, level, TradingSystem.getHighPriceOf(stack));
+		}
 		return new TradeOffer(ItemStack.EMPTY, level,0);
 	}
 	@Override

@@ -21,6 +21,7 @@ import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
 
 import freetrading.FreeTradingMod;
+import freetrading.fe_integration.ForgeEssentialsIntegrationUtil;
 import freetrading.inventory.InventoryFreeTradingMerchant;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -305,11 +306,18 @@ public class TradingSystem implements IMerchant {
 	}
 	
 	public static long getMoneyOf(Entity entity) {
+		if(entity instanceof EntityPlayerMP && FreeTradingMod.isForgeEssentialsLoaded) {
+			return ForgeEssentialsIntegrationUtil.getMoneyOf((EntityPlayerMP)entity);
+		}
 		return entity.getEntityData().getLong(MONEY);
 	}
 	
-	public static long addMoneyTo(Entity entity, int money) {
-		long current = entity.getEntityData().getLong(MONEY) + money;
+	public static long addMoneyTo(Entity entity, long profit) {
+		if(entity instanceof EntityPlayerMP && FreeTradingMod.isForgeEssentialsLoaded) {
+			ForgeEssentialsIntegrationUtil.addMoneyTo((EntityPlayerMP)entity, profit);
+			return ForgeEssentialsIntegrationUtil.getMoneyOf((EntityPlayerMP)entity);
+		}
+		long current = entity.getEntityData().getLong(MONEY) + profit;
 		entity.getEntityData().setLong(MONEY, current);
 		return current;
 	}

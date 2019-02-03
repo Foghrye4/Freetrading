@@ -7,9 +7,9 @@ import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.world.WorldServer;
 
-public class TaskOpenContainer extends TaskVillagerInteractionBase {
+public class TaskOpenMerchantContainer extends TaskVillagerInteractionBase {
 
-	public TaskOpenContainer(WorldServer worldIn, int playerEntityIdIn, int villagerIdIn) {
+	public TaskOpenMerchantContainer(WorldServer worldIn, int playerEntityIdIn, int villagerIdIn) {
 		super(worldIn, playerEntityIdIn, villagerIdIn);
 	}
 

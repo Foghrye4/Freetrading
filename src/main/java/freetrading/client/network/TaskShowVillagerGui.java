@@ -11,13 +11,13 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.item.ItemStack;
 
-public class TaskShowGui implements Runnable {
+public class TaskShowVillagerGui implements Runnable {
 
 	private final EntityVillager villager;
 	private List<TradeOffer> toList;
 	private List<TradeOffer> playerToList;
 
-	public TaskShowGui(EntityVillager villagerIn, List<TradeOffer> toListIn, List<TradeOffer> playerToListIn) {
+	public TaskShowVillagerGui(EntityVillager villagerIn, List<TradeOffer> toListIn, List<TradeOffer> playerToListIn) {
 		villager = villagerIn;
 		toList = toListIn;
 		playerToList = playerToListIn;

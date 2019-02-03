@@ -1,8 +1,12 @@
 freetrading.selling_price=+%d
 freetrading.buying_price=-%d
 freetrading.money=Money: %d
+freetrading.your_offer=Your offer:
+freetrading.partner_offer=Partner offer:
 freetrading.merchant_money=Wealth:
 freetrading.merchant_level=Level: %s
+freetrading.seal_a_deal=Seal a deal
+freetrading.abort=Abort
 farmer=Farmer
 fisherman=Fisherman
 shepherd=Shepherd

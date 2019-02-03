@@ -1,16 +1,23 @@
 package freetrading;
 
 import java.io.IOException;
+import java.util.List;
 
+import freetrading.common.network.TaskAbortDeal;
+import freetrading.common.network.TaskAcceptDealAndLockInventory;
 import freetrading.common.network.TaskBuyItem;
-import freetrading.common.network.TaskOpenContainer;
+import freetrading.common.network.TaskCloseVillagerGUI;
+import freetrading.common.network.TaskOpenMerchantContainer;
+import freetrading.common.network.TaskOpenPlayerToPlayerContainer;
 import freetrading.common.network.TaskSellItem;
+import freetrading.common.network.TaskUpdateOffer;
 import freetrading.inventory.InventoryFreeTradingMerchant;
 import freetrading.trading_system.TradeOffer;
 import freetrading.trading_system.TradingSystem;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.Unpooled;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.EntityVillager;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
@@ -45,11 +52,12 @@ import static freetrading.FreeTradingMod.*;
 
 public class ServerNetworkHandler {
 	public enum ClientCommands {
-		UPDATE_TRADING;
+		UPDATE_TRADING, OPEN_PLAYER_TO_PLAYER_GUI, SYNCHRONIZE_OFFER, CLOSE_GUI;
 	}
 
 	public enum ServerCommands {
-		SELL_ITEM, BUY_ITEM, OPEN_GUI;
+		SELL_ITEM, BUY_ITEM, OPEN_MERCHANT_GUI, OPEN_PLAYER_TO_PLAYER_CONTAINER, ACCEPT_DEAL_AND_LOCK_INVENTORY, ABORT_DEAL, CLOSE_VILLAGER_GUI, UPDATE_OFFER;
+		
 	}
 
 	protected static FMLEventChannel channel;
@@ -62,7 +70,7 @@ public class ServerNetworkHandler {
 		}
 		MinecraftForge.EVENT_BUS.register(this);
 	}
-
+	
 	@SubscribeEvent
 	public void onPacketFromClientToServer(FMLNetworkEvent.ServerCustomPacketEvent event) {
 		ByteBuf data = event.getPacket().payload();
@@ -82,9 +90,22 @@ public class ServerNetworkHandler {
 			}
 			int villagerId = 0;
 			switch (command) {
-			case OPEN_GUI:
+			case ABORT_DEAL:
+				world.addScheduledTask(new TaskAbortDeal(world, playerEntityId));
+				break;
+			case ACCEPT_DEAL_AND_LOCK_INVENTORY:
+				world.addScheduledTask(new TaskAcceptDealAndLockInventory(world, playerEntityId));
+				break;
+			case OPEN_PLAYER_TO_PLAYER_CONTAINER:
+				int otherPlayerID = byteBufInputStream.readInt();
+				world.addScheduledTask(new TaskOpenPlayerToPlayerContainer(world, playerEntityId, otherPlayerID));
+				break;
+			case CLOSE_VILLAGER_GUI:
+				world.addScheduledTask(new TaskCloseVillagerGUI(world, playerEntityId));
+				break;
+			case OPEN_MERCHANT_GUI:
 				villagerId = byteBufInputStream.readInt();
-				world.addScheduledTask(new TaskOpenContainer(world, playerEntityId,villagerId));
+				world.addScheduledTask(new TaskOpenMerchantContainer(world, playerEntityId,villagerId));
 				break;
 			case SELL_ITEM:
 				slotId = byteBufInputStream.readInt();
@@ -95,6 +116,17 @@ public class ServerNetworkHandler {
 				slotId = byteBufInputStream.readInt();
 				villagerId = byteBufInputStream.readInt();
 				world.addScheduledTask(new TaskBuyItem(world, playerEntityId,villagerId, slotId));
+				break;
+			case UPDATE_OFFER:
+				int newMoneyOffer = byteBufInputStream.readInt();
+				int slotsNum = byteBufInputStream.readInt();
+				int[] slots = new int[slotsNum];
+				for(int i=0;i<slotsNum;i++) {
+					slots[i] = byteBufInputStream.readInt();
+				}
+				world.addScheduledTask(new TaskUpdateOffer(world, playerEntityId, newMoneyOffer, slots));
+				break;
+			default:
 				break;
 			}
 			byteBufInputStream.close();
@@ -131,5 +163,36 @@ public class ServerNetworkHandler {
 
 	public void setServer(MinecraftServer serverIn) {
 		server = serverIn;
+	}
+
+	public void sendPacketOpenPlayerToPlayerGUI(EntityPlayerMP player, int otherPlayerID) {
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ClientCommands.OPEN_PLAYER_TO_PLAYER_GUI.ordinal());
+		byteBufOutputStream.writeLong(TradingSystem.getMoneyOf(player));
+		byteBufOutputStream.writeInt(otherPlayerID);
+		channel.sendTo(new FMLProxyPacket(byteBufOutputStream, MODID), player);
+	}
+
+	public void sendPacketOfferUpdate(EntityPlayerMP partner, long moneyOffer, List<ItemStack> offeredStacks) {
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ClientCommands.SYNCHRONIZE_OFFER.ordinal());
+		byteBufOutputStream.writeLong(moneyOffer);
+		byteBufOutputStream.writeInt(offeredStacks.size());
+		for(ItemStack stack:offeredStacks) {
+			byteBufOutputStream.writeItemStack(stack);
+		}
+		FMLProxyPacket packet = new FMLProxyPacket(byteBufOutputStream, MODID);
+		channel.sendTo(packet, partner);
+	}
+
+	public void sendCommandCloseGUI(EntityPlayerMP owner) {
+		new Error().printStackTrace();
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ClientCommands.CLOSE_GUI.ordinal());
+		FMLProxyPacket packet = new FMLProxyPacket(byteBufOutputStream, MODID);
+		channel.sendTo(packet, owner);
 	}
 }
