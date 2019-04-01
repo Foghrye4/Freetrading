@@ -13,6 +13,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
 public class ContainerPlayerToPlayer extends Container {
@@ -24,6 +25,8 @@ public class ContainerPlayerToPlayer extends Container {
 	public final int partnerEntityID;
 	private long moneyOffer = 0;
 	private final IntList itemOffer = new IntArrayList();
+	private final static String MESSAGE_YOUR_INVENTORY_FULL = "freetrading.cant_trade_inventory_full";
+	private final static String MESSAGE_PARTNER_INVENTORY_FULL = "freetrading.cant_trade_partner_full";
 
 	public ContainerPlayerToPlayer(EntityPlayerMP ownerIn, int partnerEntityIDIn, World worldIn) {
 		super();
@@ -67,14 +70,38 @@ public class ContainerPlayerToPlayer extends Container {
 				return;
 			ContainerPlayerToPlayer partnerCP2P = (ContainerPlayerToPlayer) partner.openContainer;
 			if (partnerCP2P.dealIsLocked) {
-				trade(partner);
+				boolean canOwnerTrade = canTradeWith(partner);
+				boolean canPartnerTrade = partnerCP2P.canTradeWith(owner);
+				if(!canOwnerTrade) {
+					owner.sendMessage(new TextComponentTranslation(MESSAGE_PARTNER_INVENTORY_FULL));
+					partner.sendMessage(new TextComponentTranslation(MESSAGE_YOUR_INVENTORY_FULL));
+				}
+				if(!canPartnerTrade) {
+					owner.sendMessage(new TextComponentTranslation(MESSAGE_YOUR_INVENTORY_FULL));
+					partner.sendMessage(new TextComponentTranslation(MESSAGE_PARTNER_INVENTORY_FULL));
+				}
+				if (canOwnerTrade && canPartnerTrade) {
+					trade(partner);
+					partnerCP2P.trade(owner);
+				}
 				setDealFinished();
 				owner.closeContainer();
-				partnerCP2P.trade(owner);
 				partnerCP2P.setDealFinished();
 				partner.closeContainer();
 			}
+			else {
+				FreeTradingMod.network.sendPacketPartnerLockHisDeal(partner);
+			}
 		}
+	}
+
+	public boolean canTradeWith(EntityPlayerMP partner) {
+		int emptySlots = 0;
+		for (int i = 0; i < partner.inventory.mainInventory.size(); i++) {
+			if (partner.inventory.mainInventory.get(i).isEmpty())
+				emptySlots++;
+		}
+		return itemOffer.size() <= emptySlots;
 	}
 
 	public void trade(EntityPlayerMP partner) {
@@ -85,14 +112,15 @@ public class ContainerPlayerToPlayer extends Container {
 			if (stack.isEmpty())
 				continue;
 			if (!partner.addItemStackToInventory(stack)) {
-				world.spawnEntity(new EntityItem(world, partner.posX, partner.posY, partner.posZ, stack));
+				FreeTradingMod.logger.error("Partner cannot hold item, which is handled to him on accepted deal! Item"
+						+ stack + " is lost. This should not be happen.");
 			}
 		}
 		TradingSystem.addMoneyTo(partner, moneyOffer);
 		TradingSystem.addMoneyTo(owner, -moneyOffer);
 	}
 
-	public void updateOffer(int newMoneyOffer, int[] slots) {
+	public void updateOffer(long newMoneyOffer, int[] slots) {
 		if (dealIsLocked)
 			return;
 		long playerMoney = TradingSystem.getMoneyOf(owner);

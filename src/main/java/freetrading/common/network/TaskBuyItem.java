@@ -39,7 +39,7 @@ public class TaskBuyItem extends TaskVillagerInteractionBase {
 		}
 		playerMoney = TradingSystem.addMoneyTo(player, -price);
 		price -= TradingSystem.getLowPriceOf(to.stack);
-		player.addItemStackToInventory(to.stack.copy());
+		player.inventory.addItemStackToInventory(to.stack.copy());
 		if (price > 0) {
 			long money = TradingSystem.addMoneyTo(villager, price);
 			villager.careerLevel = (int) (money / 1000) + 1;

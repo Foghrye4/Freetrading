@@ -27,7 +27,7 @@ public class TaskShowVillagerGui implements Runnable {
 	public void run() {
 		Minecraft mc = Minecraft.getMinecraft();
 		EntityPlayerSP player = Minecraft.getMinecraft().player;
-		if(mc.currentScreen==null) {
+		if(!(mc.currentScreen instanceof GuiFreeTradingMerchant)) {
 			mc.displayGuiScreen(new GuiFreeTradingMerchant(player, villager));
 		}
 		InventoryFreeTradingMerchant iftm = (InventoryFreeTradingMerchant) player.openContainer;

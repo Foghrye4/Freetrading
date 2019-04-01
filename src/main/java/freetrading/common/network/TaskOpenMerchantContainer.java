@@ -17,6 +17,7 @@ public class TaskOpenMerchantContainer extends TaskVillagerInteractionBase {
 	public void run() {
 		if(!this.getAndCheckEntities())
 			return;
+		player.closeContainer();
 		player.openContainer = new InventoryFreeTradingMerchant(villager);
 		FreeTradingMod.network.sendPacketUpdateTrading(player);
 	}

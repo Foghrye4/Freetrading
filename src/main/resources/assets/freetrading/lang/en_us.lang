@@ -7,6 +7,11 @@ freetrading.merchant_money=Wealth:
 freetrading.merchant_level=Level: %s
 freetrading.seal_a_deal=Seal a deal
 freetrading.abort=Abort
+freetrading.cant_trade_inventory_full=Deal aborted, because you can't hold items, which your partner offer.
+freetrading.cant_trade_partner_full=Deal aborted, because your partner can't hold items, which you offer.
+freetrading.your_offer_locked=Your offer locked
+freetrading.partner_offer_locked=Partner offer locked
+
 farmer=Farmer
 fisherman=Fisherman
 shepherd=Shepherd

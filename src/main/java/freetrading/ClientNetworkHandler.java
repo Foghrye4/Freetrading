@@ -8,6 +8,7 @@ import java.util.List;
 
 import freetrading.client.gui.slot.GuiInventorySlotPlayer;
 import freetrading.client.network.TaskCloseGui;
+import freetrading.client.network.TaskNotifyLock;
 import freetrading.client.network.TaskShowPlayerToPlayerGui;
 import freetrading.client.network.TaskShowVillagerGui;
 import freetrading.client.network.TaskSynchronizeOffer;
@@ -77,6 +78,11 @@ public class ClientNetworkHandler extends ServerNetworkHandler {
 				player.getEntityData().setLong(TradingSystem.MONEY, byteBufInputStream.readLong());
 				mc.addScheduledTask(new TaskShowPlayerToPlayerGui(byteBufInputStream.readInt()));
 				break;
+			case NOTIFY_LOCK:
+				mc.addScheduledTask(new TaskNotifyLock());
+				break;
+			default:
+				break;
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -132,7 +138,7 @@ public class ClientNetworkHandler extends ServerNetworkHandler {
 		channel.sendToServer(new FMLProxyPacket(byteBufOutputStream, MODID));
 	}
 
-	public void sendPacketUpdateOffer(List<GuiInventorySlotPlayer> slotsInCounter, int newMoneyOffer) {
+	public void sendPacketUpdateOffer(List<GuiInventorySlotPlayer> slotsInCounter, long yourOfferInt) {
 		WorldClient world = Minecraft.getMinecraft().world;
 		EntityPlayerSP player = Minecraft.getMinecraft().player;
 		ByteBuf bb = Unpooled.buffer(36);
@@ -140,7 +146,7 @@ public class ClientNetworkHandler extends ServerNetworkHandler {
 		byteBufOutputStream.writeByte(ServerCommands.UPDATE_OFFER.ordinal());
 		byteBufOutputStream.writeInt(player.getEntityId());
 		byteBufOutputStream.writeInt(world.provider.getDimension());
-		byteBufOutputStream.writeInt(newMoneyOffer);
+		byteBufOutputStream.writeLong(yourOfferInt);
 		byteBufOutputStream.writeInt(slotsInCounter.size());
 		for (GuiInventorySlotPlayer slot : slotsInCounter) {
 			byteBufOutputStream.writeInt(slot.slotIndex);

@@ -11,14 +11,14 @@ public class TaskUpdateOffer implements Runnable {
 
 	protected final int playerEntityId;
 	protected final WorldServer world;
-	protected final int newMoneyOffer;
+	protected final long newMoneyOffer;
 	protected EntityPlayerMP player1;
 	private final int[] slots;
 
-	public TaskUpdateOffer(WorldServer worldIn, int playerEntityIdIn, int newMoneyOfferIn, int[] slotsIn) {
+	public TaskUpdateOffer(WorldServer worldIn, int playerEntityIdIn, long newMoneyOffer2, int[] slotsIn) {
 		playerEntityId = playerEntityIdIn;
 		world = worldIn;
-		newMoneyOffer = newMoneyOfferIn;
+		newMoneyOffer = newMoneyOffer2;
 		slots = slotsIn;
 	}
 

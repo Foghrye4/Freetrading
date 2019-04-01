@@ -23,9 +23,10 @@ public class TaskSellItem extends TaskVillagerInteractionBase {
 		if (!(player.openContainer instanceof InventoryFreeTradingMerchant)) {
 			return;
 		}
-		ItemStack stack = player.inventory.removeStackFromSlot(slotId);
+		ItemStack stack = player.inventory.mainInventory.get(slotId);
 		int price = TradingSystem.getLowPriceOf(stack);
 		TradingSystem.addMoneyTo(player, price);
+		stack.setCount(0);
 		FreeTradingMod.network.sendPacketUpdateTrading(player);
 	}
 }

@@ -20,6 +20,7 @@ import net.minecraft.client.gui.GuiButton;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.client.gui.inventory.GuiContainer;
+import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -45,12 +46,16 @@ public class GuiPlayerToPlayer extends GuiScreen {
 	GuiButton abort;
 	GuiTextField moneyOfferInput;
 	private String moneyString = "";
-	private int yourOfferInt = 0;
+	private long yourMoney = TradingSystem.getMoneyOf(Minecraft.getMinecraft().player);
+	private long yourOfferInt = 0;
 	public long partnerOfferInt = 0;
 	private String yourOffer = "";
 	private String partnerOffer = "";
 	public final List<ItemStack> partnerItemStackOffer = new ArrayList<ItemStack>();
-	int prevMoneyOffer = -1;
+	public String yourDealIsLockedDescription = "";
+	public String partnerDealIsLockedDescription = "";
+	public boolean yourDealIsLocked = false;
+	public boolean partnerDealIsLocked = false;
 
 	public GuiPlayerToPlayer(EntityPlayer playerIn) {
 		super();
@@ -92,7 +97,6 @@ public class GuiPlayerToPlayer extends GuiScreen {
         return null;
 	}
 
-
 	public void initGui() {
 		super.initGui();
 		int guiLeft = (this.width - this.xSize) / 2;
@@ -101,7 +105,7 @@ public class GuiPlayerToPlayer extends GuiScreen {
 				TradingSystem.getMoneyOf(Minecraft.getMinecraft().player));
 		this.partnerOffer = I18n.format("freetrading.partner_offer",
 				TradingSystem.getMoneyOf(Minecraft.getMinecraft().player));
-		this.moneyString = I18n.format("freetrading.money", TradingSystem.getMoneyOf(Minecraft.getMinecraft().player));
+		this.moneyString = I18n.format("freetrading.money", yourMoney);
 		this.seal = new GuiButton(0, guiLeft + 181, guiTop + 119, 70, 20, I18n.format("freetrading.seal_a_deal"));
 		this.abort = new GuiButton(1, guiLeft + 181, guiTop + 119 + 24, 70, 20, I18n.format("freetrading.abort"));
 		this.buttonList.add(seal);
@@ -109,7 +113,8 @@ public class GuiPlayerToPlayer extends GuiScreen {
 		this.moneyOfferInput = new GuiTextField(2, this.fontRenderer, guiLeft + 180, guiTop + 27, 70, 16);
 		this.moneyOfferInput.setMaxStringLength(12);
 		this.moneyOfferInput.setText(String.valueOf(0));
-
+		this.yourDealIsLockedDescription = I18n.format("freetrading.your_offer_locked");
+		this.partnerDealIsLockedDescription = I18n.format("freetrading.partner_offer_locked");
 	}
 
 	protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
@@ -125,11 +130,15 @@ public class GuiPlayerToPlayer extends GuiScreen {
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		int guiLeft = (this.width - this.xSize) / 2;
 		int guiTop = (this.height - this.ySize) / 2;
+		boolean unicodeFlag = this.fontRenderer.getUnicodeFlag();
+		this.fontRenderer.setUnicodeFlag(true);
 		this.fontRenderer.drawString(moneyString, guiLeft + 7, guiTop + 64, 0x000000);
+		
 		this.fontRenderer.drawString(yourOffer, guiLeft + 180, guiTop + 7, 0x000000);
 		this.fontRenderer.drawString(String.valueOf(yourOfferInt), guiLeft + 180, guiTop + 17, 0x000000);
-		this.fontRenderer.drawString(partnerOffer, guiLeft + 180, guiTop + 47, 0x444444);
-		this.fontRenderer.drawString(String.valueOf(partnerOfferInt), guiLeft + 180, guiTop + 57, 0x444444);
+		
+		this.fontRenderer.drawString(partnerOffer, guiLeft + 180, guiTop + 67, 0x444444);
+		this.fontRenderer.drawString(String.valueOf(partnerOfferInt), guiLeft + 180, guiTop + 77, 0x444444);
 		this.moneyOfferInput.drawTextBox();
 		for(GuiInventorySlotPlayer slot:playerInventorySlots) {
 			slot.render(guiLeft, guiTop, mouseX, mouseY);
@@ -137,6 +146,30 @@ public class GuiPlayerToPlayer extends GuiScreen {
 		for(GuiInventorySlotCounter slot:partnerInventorySlots) {
 			slot.render(guiLeft, guiTop, mouseX, mouseY);
 		}
+		if(yourDealIsLocked) {
+			this.drawLock(guiLeft+38, guiTop+27);
+			this.drawLock(guiLeft+235, guiTop+28);
+			drawString(guiLeft + 180, guiTop + 47, 0x000000, yourDealIsLockedDescription);
+		}
+		if(partnerDealIsLocked) {
+			this.drawLock(guiLeft+128, guiTop+27);
+			drawString(guiLeft + 180, guiTop + 87, 0x444444, partnerDealIsLockedDescription);
+		}
+		this.fontRenderer.setUnicodeFlag(unicodeFlag);
+	}
+	
+	private void drawString(int x, int y, int color, String string) {
+		int row = 0;
+		StringBuffer buffer = new StringBuffer();
+		for (String istring : string.split(" ")) {
+			buffer.append(istring);
+			buffer.append(" ");
+			if (buffer.length() > 8) {
+				this.fontRenderer.drawString(buffer.toString(), x, y + row++ * 10, color);
+				buffer.setLength(0);
+			}
+		}
+		this.fontRenderer.drawString(buffer.toString(), x, y + row++ * 10, color);
 	}
 
 	@Override
@@ -145,6 +178,7 @@ public class GuiPlayerToPlayer extends GuiScreen {
 		ClientNetworkHandler cnh = (ClientNetworkHandler) FreeTradingMod.network;
 		switch (button.id) {
 		case 0:
+			this.yourDealIsLocked = true;
 			cnh.runServerCommand(ServerCommands.ACCEPT_DEAL_AND_LOCK_INVENTORY);
 			break;
 		case 1:
@@ -162,6 +196,10 @@ public class GuiPlayerToPlayer extends GuiScreen {
 
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+		if (yourDealIsLocked) {
+			super.mouseClicked(mouseX, mouseY, mouseButton);
+			return;
+		}
 		this.moneyOfferInput.mouseClicked(mouseX, mouseY, mouseButton);
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 		int guiLeft = (this.width - this.xSize) / 2;
@@ -179,24 +217,38 @@ public class GuiPlayerToPlayer extends GuiScreen {
 
 	@Override
 	protected void keyTyped(char typedChar, int keyCode) throws IOException {
+		if (yourDealIsLocked) {
+			super.keyTyped(typedChar, keyCode);
+			return;
+		}
 		if (!this.moneyOfferInput.textboxKeyTyped(typedChar, keyCode)) {
 			super.keyTyped(typedChar, keyCode);
 		} else {
-			int newMoneyOffer = this.prevMoneyOffer;
+			long newMoneyOffer = this.yourOfferInt;
 			try {
-				newMoneyOffer = Integer.parseInt(this.moneyOfferInput.getText());
+				newMoneyOffer = Long.parseLong(this.moneyOfferInput.getText());
 			} catch (NumberFormatException e) {
 			}
-			if (newMoneyOffer != this.prevMoneyOffer) {
-				this.prevMoneyOffer = newMoneyOffer;
+			if (newMoneyOffer < 0)
+				newMoneyOffer = 0;
+			if (newMoneyOffer > yourMoney)
+				newMoneyOffer = yourMoney;
+			if (newMoneyOffer != this.yourOfferInt) {
+				this.yourOfferInt = newMoneyOffer;
 				this.updateOffer();
 			}
 		}
 	}
 	
+	private void drawLock(int atX, int atY) {
+		GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
+		this.mc.renderEngine.bindTexture(bg);
+		this.drawTexturedModalRect(atX, atY, 72, 177, 10, 14);
+	}
+	
 	private void updateOffer() {
 		ClientNetworkHandler cnh = (ClientNetworkHandler) FreeTradingMod.network;
-		cnh.sendPacketUpdateOffer(playerCounter.slotsInCounter, this.prevMoneyOffer);
+		cnh.sendPacketUpdateOffer(playerCounter.slotsInCounter, this.yourOfferInt);
 	}
 
 	@Override

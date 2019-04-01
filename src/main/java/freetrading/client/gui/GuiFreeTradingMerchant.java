@@ -217,6 +217,7 @@ public class GuiFreeTradingMerchant extends GuiScreen {
 	public void onGuiClosed() {
 		super.onGuiClosed();
 		ClientNetworkHandler cnetwork = (ClientNetworkHandler) network;
+		player.openContainer = player.inventoryContainer;
 		cnetwork.runServerCommand(ServerCommands.CLOSE_VILLAGER_GUI);
 	}
 }

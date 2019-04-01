@@ -35,6 +35,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.IThreadListener;
+import net.minecraft.util.NonNullList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -52,7 +53,7 @@ import static freetrading.FreeTradingMod.*;
 
 public class ServerNetworkHandler {
 	public enum ClientCommands {
-		UPDATE_TRADING, OPEN_PLAYER_TO_PLAYER_GUI, SYNCHRONIZE_OFFER, CLOSE_GUI;
+		UPDATE_TRADING, OPEN_PLAYER_TO_PLAYER_GUI, SYNCHRONIZE_OFFER, CLOSE_GUI, NOTIFY_LOCK;
 	}
 
 	public enum ServerCommands {
@@ -118,7 +119,7 @@ public class ServerNetworkHandler {
 				world.addScheduledTask(new TaskBuyItem(world, playerEntityId,villagerId, slotId));
 				break;
 			case UPDATE_OFFER:
-				int newMoneyOffer = byteBufInputStream.readInt();
+				long newMoneyOffer = byteBufInputStream.readLong();
 				int slotsNum = byteBufInputStream.readInt();
 				int[] slots = new int[slotsNum];
 				for(int i=0;i<slotsNum;i++) {
@@ -152,9 +153,10 @@ public class ServerNetworkHandler {
 		}
 		byteBufOutputStream.writeInt(merchantInventory.merchant.careerId);
 		byteBufOutputStream.writeInt(merchantInventory.merchant.careerLevel);
-		byteBufOutputStream.writeInt(player.inventory.getSizeInventory());
-		for(int i=0;i<player.inventory.getSizeInventory();i++) {
-			ItemStack stack = player.inventory.getStackInSlot(i);
+		NonNullList<ItemStack> main = player.inventory.mainInventory;
+		byteBufOutputStream.writeInt(main.size());
+		for(int i=0;i<main.size();i++) {
+			ItemStack stack = main.get(i);
 			byteBufOutputStream.writeItemStack(stack);
 			byteBufOutputStream.writeInt(TradingSystem.getLowPriceOf(stack));
 		}
@@ -188,11 +190,18 @@ public class ServerNetworkHandler {
 	}
 
 	public void sendCommandCloseGUI(EntityPlayerMP owner) {
-		new Error().printStackTrace();
 		ByteBuf bb = Unpooled.buffer(36);
 		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
 		byteBufOutputStream.writeByte(ClientCommands.CLOSE_GUI.ordinal());
 		FMLProxyPacket packet = new FMLProxyPacket(byteBufOutputStream, MODID);
 		channel.sendTo(packet, owner);
+	}
+
+	public void sendPacketPartnerLockHisDeal(EntityPlayerMP partner) {
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ClientCommands.NOTIFY_LOCK.ordinal());
+		FMLProxyPacket packet = new FMLProxyPacket(byteBufOutputStream, MODID);
+		channel.sendTo(packet, partner);
 	}
 }
