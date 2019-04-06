@@ -53,12 +53,11 @@ import static freetrading.FreeTradingMod.*;
 
 public class ServerNetworkHandler {
 	public enum ClientCommands {
-		UPDATE_TRADING, OPEN_PLAYER_TO_PLAYER_GUI, SYNCHRONIZE_OFFER, CLOSE_GUI, NOTIFY_LOCK;
+		UPDATE_TRADING, OPEN_PLAYER_TO_PLAYER_GUI, SYNCHRONIZE_OFFER, CLOSE_GUI, NOTIFY_LOCK, UPDATE_OVERLAY_BALANCE;
 	}
 
 	public enum ServerCommands {
-		SELL_ITEM, BUY_ITEM, OPEN_MERCHANT_GUI, OPEN_PLAYER_TO_PLAYER_CONTAINER, ACCEPT_DEAL_AND_LOCK_INVENTORY, ABORT_DEAL, CLOSE_VILLAGER_GUI, UPDATE_OFFER;
-		
+		SELL_ITEM, BUY_ITEM, OPEN_MERCHANT_GUI, OPEN_PLAYER_TO_PLAYER_CONTAINER, ACCEPT_DEAL_AND_LOCK_INVENTORY, ABORT_DEAL, CLOSE_VILLAGER_GUI, UPDATE_OFFER, REQUEST_PLAYER_MONEY_INFO;
 	}
 
 	protected static FMLEventChannel channel;
@@ -127,6 +126,14 @@ public class ServerNetworkHandler {
 				}
 				world.addScheduledTask(new TaskUpdateOffer(world, playerEntityId, newMoneyOffer, slots));
 				break;
+			case REQUEST_PLAYER_MONEY_INFO:
+				world.addScheduledTask(() -> {
+					Entity player = world.getEntityByID(playerEntityId);
+					if(!(player instanceof EntityPlayerMP))
+						return;
+					this.sendPacketUpdatePlayerBalance((EntityPlayerMP) player,0L);
+				});
+				break;
 			default:
 				break;
 			}
@@ -134,6 +141,15 @@ public class ServerNetworkHandler {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void sendPacketUpdatePlayerBalance(EntityPlayerMP player, long balance) {
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ClientCommands.UPDATE_OVERLAY_BALANCE.ordinal());
+		byteBufOutputStream.writeLong(TradingSystem.getMoneyOf(player));
+		byteBufOutputStream.writeLong(balance);
+		channel.sendTo(new FMLProxyPacket(byteBufOutputStream, MODID), (EntityPlayerMP) player);
 	}
 	
 	public void sendPacketUpdateTrading(EntityPlayerMP player) {

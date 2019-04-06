@@ -1,3 +1,5 @@
+tile.counter.name=Прилавок
+
 freetrading.selling_price=+%d
 freetrading.buying_price=-%d
 freetrading.money=Деньги игрока: %d

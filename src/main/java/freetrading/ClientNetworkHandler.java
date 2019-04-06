@@ -81,7 +81,10 @@ public class ClientNetworkHandler extends ServerNetworkHandler {
 			case NOTIFY_LOCK:
 				mc.addScheduledTask(new TaskNotifyLock());
 				break;
-			default:
+			case UPDATE_OVERLAY_BALANCE:
+				mc.addScheduledTask(() -> {
+					ClientProxy.guiHandler.updateBalance(byteBufInputStream.readLong(), byteBufInputStream.readLong());
+				});
 				break;
 			}
 		} catch (IOException e) {
@@ -151,6 +154,17 @@ public class ClientNetworkHandler extends ServerNetworkHandler {
 		for (GuiInventorySlotPlayer slot : slotsInCounter) {
 			byteBufOutputStream.writeInt(slot.slotIndex);
 		}
+		channel.sendToServer(new FMLProxyPacket(byteBufOutputStream, MODID));
+	}
+
+	public void requestPlayerMoneyInfo() {
+		WorldClient world = Minecraft.getMinecraft().world;
+		EntityPlayerSP player = Minecraft.getMinecraft().player;
+		ByteBuf bb = Unpooled.buffer(36);
+		PacketBuffer byteBufOutputStream = new PacketBuffer(bb);
+		byteBufOutputStream.writeByte(ServerCommands.REQUEST_PLAYER_MONEY_INFO.ordinal());
+		byteBufOutputStream.writeInt(player.getEntityId());
+		byteBufOutputStream.writeInt(world.provider.getDimension());
 		channel.sendToServer(new FMLProxyPacket(byteBufOutputStream, MODID));
 	}
 }

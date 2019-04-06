@@ -1,4 +1,4 @@
-package freetrading.fe_integration;
+package freetrading.mod_interaction.fe_integration;
 
 import com.forgeessentials.api.APIRegistry;
 import com.forgeessentials.api.UserIdent;
