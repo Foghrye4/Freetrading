@@ -46,6 +46,10 @@ repositories {
 		name = "sponge"
 		url = "http://repo.spongepowered.org/maven/"
 	}
+	maven { // EnderPay
+        name "kamildanak"
+        url "https://kamildanak.com/maven/"
+    }
     flatDir {
         dirs "lib"
    }
@@ -60,6 +64,7 @@ jar {
 
 dependencies {
 	compile group: "com.forgeessentials", name: "forgeessentials", version: "1.4.4-SNAPSHOT", classifier: "dev", changing: true
+	deobfProvided "com.kamildanak.minecraft.enderpay:enderpay:${minecraft_version}-${enderpay_version}"
 	compile name: "GrandEconomy-1.12.2-1.0.1-deobf"
 }
 
