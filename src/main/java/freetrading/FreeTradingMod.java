@@ -29,7 +29,8 @@ public class FreeTradingMod {
 	public static Logger logger;
 	public static boolean isForgeEssentialsLoaded = false;
 	public static boolean isGrandEconomyLoaded = false;
-
+	public static boolean isEnderPayLoaded = false;
+	
 	@EventHandler
 	public void preInit(FMLPreInitializationEvent event) {
 		network.load();
@@ -39,6 +40,7 @@ public class FreeTradingMod {
 		MinecraftForge.EVENT_BUS.register(new PlayerInteractionEventHandler());
 		isForgeEssentialsLoaded = Loader.isModLoaded("forgeessentials");
 		isGrandEconomyLoaded = Loader.isModLoaded("grandeconomy");
+		isEnderPayLoaded = Loader.isModLoaded("enderpay");
 		TileEntity.register(MODID+":counter", TileEntityVillageMarket.class);
 	}
 

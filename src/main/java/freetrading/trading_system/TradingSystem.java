@@ -22,6 +22,7 @@ import com.google.gson.stream.JsonWriter;
 
 import freetrading.FreeTradingMod;
 import freetrading.inventory.InventoryFreeTradingMerchant;
+import freetrading.mod_interaction.ep_integration.EnderPayIntegrationUtil;
 import freetrading.mod_interaction.fe_integration.ForgeEssentialsIntegrationUtil;
 import freetrading.mod_interaction.ge_integration.GrandEconomyIntegrationUtil;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -307,6 +308,9 @@ public class TradingSystem implements IMerchant {
 	}
 	
 	public static long getMoneyOf(Entity entity) {
+		if(entity instanceof EntityPlayerMP && FreeTradingMod.isEnderPayLoaded) { 	//GrandEconomy Supports EnderPay, if both are loaded EnderPay should be preferred. 
+			return EnderPayIntegrationUtil.getMoneyOf((EntityPlayerMP)entity);
+		}
 		if(entity instanceof EntityPlayerMP && FreeTradingMod.isGrandEconomyLoaded) {
 			return GrandEconomyIntegrationUtil.getMoneyOf((EntityPlayerMP)entity);
 		}
@@ -317,6 +321,10 @@ public class TradingSystem implements IMerchant {
 	}
 	
 	public static long addMoneyTo(Entity entity, long profit) {
+		if (entity instanceof EntityPlayerMP && FreeTradingMod.isEnderPayLoaded) {
+			EnderPayIntegrationUtil.addMoneyTo((EntityPlayerMP) entity, profit);
+			return EnderPayIntegrationUtil.getMoneyOf((EntityPlayerMP)entity);
+		}
 		if (entity instanceof EntityPlayerMP && FreeTradingMod.isGrandEconomyLoaded) {
 			GrandEconomyIntegrationUtil.addMoneyTo((EntityPlayerMP) entity, profit);
 			return GrandEconomyIntegrationUtil.getMoneyOf((EntityPlayerMP) entity);
